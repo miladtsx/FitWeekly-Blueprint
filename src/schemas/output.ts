@@ -1,7 +1,6 @@
 import { z } from "zod";
 import { zodToJsonSchema } from "zod-to-json-schema";
-
-const weekdays = ["sat", "sun", "mon", "tue", "wed", "thu", "fri"] as const;
+import { DAYS } from "../types/types";
 
 // --- Shared building blocks -------------------------------------------------
 
@@ -14,7 +13,7 @@ export const dietItemSchema = z.object({
 export const dietDaySchema = z.array(dietItemSchema).min(3).max(3);
 
 export const exerciseItemSchema = z.object({
-  day: z.enum(weekdays),
+  day: z.enum(DAYS),
   goal: z.string(),
   when: z.string(),
   what: z.string(),

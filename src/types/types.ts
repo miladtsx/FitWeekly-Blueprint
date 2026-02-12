@@ -1,3 +1,5 @@
+// --- Core domain types -------------------------------------------------------
+
 export type Sex = "male" | "female";
 export type Goal =
   | "build_muscle"
@@ -35,6 +37,22 @@ export type UserPayload = {
   computedNumbers: DeterministicNumbers;
 };
 
+// --- Shared types for AI model responses ------------------------------------
+
+export type ChatMessage = { content?: unknown };
+export type ChatChoice = { message?: ChatMessage; finish_reason?: string };
+export type ChatCompletion = {
+  choices: ChatChoice[];
+  usage?: { completion_tokens?: number; total_tokens?: number };
+};
+
+export type DietItem = { when: string; what: string; why: string };
+
+export const DAYS = ["sat", "sun", "mon", "tue", "wed", "thu", "fri"] as const;
+export type DayKey = (typeof DAYS)[number];
+
+// --- Input/Output array items ------------------------------------------------
+
 export type DietArrayItem = {
   when?: unknown;
   meal?: unknown;
@@ -50,3 +68,5 @@ export type ExerciseArrayItem = {
   duration_minutes?: unknown;
   intensity_or_rest?: unknown;
 };
+
+export type DietDay = DietItem[];

@@ -2,7 +2,7 @@ import { plansSchema } from "../../src/schemas/output";
 import type { PlanRequest } from "../../src/types/types";
 import type { z } from "zod";
 
-export const sampleDietDay = [
+export const sampleDietDay: { when: string; what: string; why: string }[] = [
   { when: "07:30-08:00", what: "اوت میل با شیر کم‌چرب", why: "انرژی صبح" },
   {
     when: "13:00-13:30",
@@ -10,7 +10,7 @@ export const sampleDietDay = [
     why: "پروتئین و کربوهیدرات",
   },
   { when: "20:00-20:30", what: "سالاد و ماست", why: "فیبر و ریکاوری" },
-] as const;
+]
 
 export type SamplePlans = z.infer<typeof plansSchema>;
 

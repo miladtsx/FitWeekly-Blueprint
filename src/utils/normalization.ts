@@ -2,16 +2,16 @@
  * Data normalization utilities
  */
 
-import type { DietArrayItem, ExerciseArrayItem } from "../types/types";
 import {
-  isChatCompletion,
+  type DietArrayItem,
   type DietItem,
-  isDietItem,
-} from "./validation";
+  type ExerciseArrayItem,
+  type DayKey,
+} from "../types/types";
+import { isChatCompletion, isDietItem, DAYS } from "./validation";
 
-const DAYS = ["sat", "sun", "mon", "tue", "wed", "thu", "fri"] as const;
-export type DayKey = (typeof DAYS)[number];
-export type DietDay = DietItem[];
+export type { DayKey };
+export { DAYS };
 
 export function extractModelPayload(raw: unknown): unknown {
   if (isChatCompletion(raw)) {
@@ -36,23 +36,9 @@ export function extractModelPayload(raw: unknown): unknown {
 export function normalizeDay(value: unknown): string | undefined {
   if (typeof value !== "string") return undefined;
   const lower = value.toLowerCase();
-  const map: Record<string, string> = {
-    sat: "sat",
-    saturday: "sat",
-    sun: "sun",
-    sunday: "sun",
-    mon: "mon",
-    monday: "mon",
-    tue: "tue",
-    tuesday: "tue",
-    wed: "wed",
-    wednesday: "wed",
-    thu: "thu",
-    thursday: "thu",
-    fri: "fri",
-    friday: "fri",
-  };
-  return map[lower];
+  const validDays = ["sat", "sun", "mon", "tue", "wed", "thu", "fri"];
+  const day = lower.slice(0, 3);
+  return validDays.includes(day) ? day : undefined;
 }
 
 export function normalizePlansPayload(payload: unknown): unknown {
@@ -64,7 +50,7 @@ export function normalizePlansPayload(payload: unknown): unknown {
   if (!data || typeof data !== "object") return payload;
   const typed = data as Record<string, unknown>;
 
-  const diet: Partial<Record<DayKey, DietDay>> | undefined =
+  const diet: Partial<Record<DayKey, DietItem[]>> | undefined =
     typed.diet && Array.isArray(typed.diet)
       ? spreadDietAcrossWeek(typed.diet as DietArrayItem[])
       : normalizeDietObject(typed.diet);
@@ -84,12 +70,12 @@ export function normalizePlansPayload(payload: unknown): unknown {
 export function spreadDietAcrossWeek(items: DietArrayItem[]) {
   const normalized = items.map(normalizeDietItem).filter(isDietItem);
 
-  const dietPerDay = DAYS.reduce<Record<DayKey, DietDay>>(
+  const dietPerDay = DAYS.reduce<Record<DayKey, DietItem[]>>(
     (acc, day) => {
       acc[day] = normalized.slice(0, 3);
       return acc;
     },
-    {} as Record<DayKey, DietDay>,
+    {} as Record<DayKey, DietItem[]>,
   );
 
   return dietPerDay;
@@ -98,7 +84,7 @@ export function spreadDietAcrossWeek(items: DietArrayItem[]) {
 export function normalizeDietObject(value: unknown) {
   if (!value || typeof value !== "object") return undefined;
 
-  const dietObj: Partial<Record<DayKey, DietDay>> = {};
+  const dietObj: Partial<Record<DayKey, DietItem[]>> = {};
 
   for (const day of DAYS) {
     const items = (value as Record<string, unknown>)[day];
@@ -153,5 +139,3 @@ export function normalizeExerciseItem(item: ExerciseArrayItem) {
     intensity_or_rest: intensity,
   };
 }
-
-export { DAYS };

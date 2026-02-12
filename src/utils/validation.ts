@@ -2,14 +2,9 @@
  * Type guard functions for validation
  */
 
-type ChatMessage = { content?: unknown };
-type ChatChoice = { message?: ChatMessage; finish_reason?: string };
-export type ChatCompletion = {
-  choices: ChatChoice[];
-  usage?: { completion_tokens?: number; total_tokens?: number };
-};
+import { type ChatCompletion, type DietItem, DAYS } from "../types/types";
 
-export type DietItem = { when: string; what: string; why: string };
+export { type ChatCompletion, type DietItem, DAYS };
 
 export function isChatCompletion(raw: unknown): raw is ChatCompletion {
   return (
