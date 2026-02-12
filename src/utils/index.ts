@@ -1,6 +1,12 @@
 import { ZodError } from "zod";
-import { Activity, Goal, PlanRequest, Sex } from "./types/types";
-import { DeterministicNumbers, UserPayload } from "./types/types";
+import {
+  Activity,
+  DeterministicNumbers,
+  Goal,
+  PlanRequest,
+  Sex,
+  UserPayload,
+} from "../types/types";
 
 export const corsHeaders = {
   "Access-Control-Allow-Headers": "*",
@@ -18,29 +24,19 @@ export function json<T>(data: T, status = 200) {
   });
 }
 
-export function normalizeText(s?: string) {
-  return (s ?? "").toLowerCase().replace(/\s+/g, "");
-}
-
 export function hasMedicalCondition(medicalText?: string) {
-  return normalizeText(medicalText).length > 0;
-}
-
-export function computeDeterministic(input: PlanRequest): DeterministicNumbers {
-  const bmi = _round(_calcBMI(input.weightKg, input.heightCm), 1);
-  const bmr = Math.round(
-    _calcBMR(input.sex, input.weightKg, input.heightCm, input.age),
-  );
-  const tdee = Math.round(bmr * _activityFactor(input.activity));
-  const dailyCalories = _targetCalories(tdee, input.goal);
-  const macro_distribution_percent = _macroPercent(input.goal);
-  return { bmi, bmr, tDee: tdee, dailyCalories, macro_distribution_percent };
+  return _normalizeText(medicalText).length > 0;
 }
 
 export function buildUserPayload(input: PlanRequest): UserPayload {
+  const { goal, activity, practicePlace, sex, age } = input;
   return {
-    request: input,
-    computedNumbers: computeDeterministic(input),
+    goal,
+    activity,
+    practicePlace,
+    sex,
+    age,
+    computedNumbers: _computeDeterministic(input),
   };
 }
 
@@ -90,4 +86,19 @@ function _macroPercent(goal: Goal) {
   if (goal === "lose_weight") return { protein: 35, fat: 30, carbs: 35 };
   if (goal === "get_fit") return { protein: 30, fat: 30, carbs: 40 };
   return { protein: 25, fat: 30, carbs: 45 };
+}
+
+function _computeDeterministic(input: PlanRequest): DeterministicNumbers {
+  const bmi = _round(_calcBMI(input.weightKg, input.heightCm), 1);
+  const bmr = Math.round(
+    _calcBMR(input.sex, input.weightKg, input.heightCm, input.age),
+  );
+  const tdee = Math.round(bmr * _activityFactor(input.activity));
+  const dailyCalories = _targetCalories(tdee, input.goal);
+  const macro_distribution_percent = _macroPercent(input.goal);
+  return { bmi, bmr, tDee: tdee, dailyCalories, macro_distribution_percent };
+}
+
+function _normalizeText(s?: string) {
+  return (s ?? "").toLowerCase().replace(/\s+/g, "");
 }

@@ -26,7 +26,27 @@ export interface DeterministicNumbers {
   macro_distribution_percent: { protein: number; fat: number; carbs: number };
 }
 
-export interface UserPayload {
-  request: PlanRequest;
+export type UserPayload = {
+  goal: Goal;
+  activity: Activity;
+  sex: Sex;
+  age: number;
+  practicePlace?: PracticePlace;
   computedNumbers: DeterministicNumbers;
-}
+};
+
+export type DietArrayItem = {
+  when?: unknown;
+  meal?: unknown;
+  what?: unknown;
+  why?: unknown;
+};
+
+export type ExerciseArrayItem = {
+  day?: unknown;
+  when?: unknown;
+  goal?: unknown;
+  what?: unknown;
+  duration_minutes?: unknown;
+  intensity_or_rest?: unknown;
+};
