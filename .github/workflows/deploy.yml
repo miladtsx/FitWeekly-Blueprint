@@ -50,7 +50,4 @@ jobs:
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          command: |
-            deploy
-            --var ANALYTICS_ENABLED:${{ vars.ANALYTICS_ENABLED }}
-            --var METRICS_ENABLED:${{ vars.METRICS_ENABLED }}
+          command: deploy --var ANALYTICS_ENABLED:${{ vars.ANALYTICS_ENABLED }} --var METRICS_ENABLED:${{ vars.METRICS_ENABLED }}
