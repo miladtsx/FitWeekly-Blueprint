@@ -40,12 +40,17 @@ jobs:
       - name: Lint
         run: pnpm lint
 
+      - name: Check env vars present
+        run: |
+          echo "ANALYTICS_ENABLED set? ${{ vars.ANALYTICS_ENABLED != '' }}"
+          echo "METRICS_ENABLED set? ${{ vars.METRICS_ENABLED != '' }}"
+
       - name: Deploy to Cloudflare Workers
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-          # Pass environment variables to the worker
-          vars: |
-            ${{ vars.ANALYTICS_ENABLED != '' && format('ANALYTICS_ENABLED={0}', vars.ANALYTICS_ENABLED) || '' }}
-            ${{ vars.METRICS_ENABLED != '' && format('METRICS_ENABLED={0}', vars.METRICS_ENABLED) || '' }}
+        command: >
+          deploy
+          --var ANALYTICS_ENABLED:${{ vars.ANALYTICS_ENABLED }}
+          --var METRICS_ENABLED:${{ vars.METRICS_ENABLED }}
