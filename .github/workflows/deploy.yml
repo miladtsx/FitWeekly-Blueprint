@@ -44,5 +44,6 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           # Pass environment variables to the worker
-          vars: ${{ vars.ANALYTICS_ENABLED != '' && format('ANALYTICS_ENABLED={0}', vars.ANALYTICS_ENABLED) || '' }}
-          vars: ${{ vars.METRICS_ENABLED != '' && format('METRICS_ENABLED={0}', vars.METRICS_ENABLED) || '' }}
+          vars: |
+            ${{ vars.ANALYTICS_ENABLED != '' && format('ANALYTICS_ENABLED={0}', vars.ANALYTICS_ENABLED) || '' }}
+            ${{ vars.METRICS_ENABLED != '' && format('METRICS_ENABLED={0}', vars.METRICS_ENABLED) || '' }}
