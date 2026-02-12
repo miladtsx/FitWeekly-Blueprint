@@ -3,6 +3,12 @@
 
 export interface Env {
 	AI: Ai;
+	ANALYTICS?: AnalyticsEngine;
 }
 
-export {};
+export interface AnalyticsEngine {
+	write: (data: {
+		localHour: number;
+		[key: string]: unknown;
+	}) => Promise<void>;
+}

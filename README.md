@@ -2,9 +2,9 @@
 
 # FitWeekly Blueprint
 
-[![Deploy to Cloudflare Workers](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/codekilid/fitness-bot)
-[![Tests](https://github.com/codekilid/fitness-bot/actions/workflows/test.yml/badge.svg)](https://github.com/codekilid/fitness-bot/actions/workflows/test.yml)
-[![Deploy](https://github.com/codekilid/fitness-bot/actions/workflows/deploy.yml/badge.svg)](https://github.com/codekilid/fitness-bot/actions/workflows/deploy.yml)
+[![Deploy to Cloudflare Workers](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/miladtsx/FitWeekly-Blueprint)
+[![Tests](https://github.com/miladtsx/FitWeekly-Blueprint/actions/workflows/test.yml/badge.svg)](https://github.com/miladtsx/FitWeekly-Blueprint/actions/workflows/test.yml)
+[![Deploy](https://github.com/miladtsx/FitWeekly-Blueprint/actions/workflows/deploy.yml/badge.svg)](https://github.com/miladtsx/FitWeekly-Blueprint/actions/workflows/deploy.yml)
 
 **AI-powered personalized weekly diet and exercise plans**
 
@@ -66,7 +66,25 @@ Specify the language in your request using the `language` field.
 <details>
 <summary><h2>2. How to Use It</h2></summary>
 
+> **Analytics & Metrics**
+> 
+> This service collects **minimal, operationally necessary metrics**:
+> 
+> | Metric | Why We Collect It |
+> |--------|-------------------|
+> | Request success/error rates | Monitor service health and uptime |
+> | Response times (latency) | Identify performance issues |
+> | Error types | Debug failures and improve reliability |
+> | Token usage | Track AI costs and optimize efficiency |
+> | Language distribution | Prioritize language support |
+> 
+> **No personal data is stored.** Metrics are aggregated and cannot identify individual users.
+> 
+> **To disable:** Set `METRICS_ENABLED = false` in wrangler.toml vars.
+
+
 ### Endpoint
+
 
 ```
 POST https://<your-worker>.<your-subdomain>.workers.dev
@@ -167,7 +185,7 @@ POST https://<your-worker>.<your-subdomain>.workers.dev
 
 ### 🚀 Option 1: 1-Click Deploy to Cloudflare
 
-[![Deploy to Cloudflare Workers](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/codekilid/fitness-bot)
+[![Deploy to Cloudflare Workers](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/miladtsx/FitWeekly-Blueprint)
 
 > **Note:** After deployment, you must enable Workers AI in your Cloudflare dashboard.
 
@@ -181,7 +199,7 @@ POST https://<your-worker>.<your-subdomain>.workers.dev
 
 ### ⚡ Option 2: Deploy via GitHub Actions
 
-[![Deploy to Cloudflare](https://github.com/codekilid/fitness-bot/actions/workflows/deploy.yml/badge.svg)](https://github.com/codekilid/fitness-bot/actions/workflows/deploy.yml)
+[![Deploy to Cloudflare](https://github.com/miladtsx/FitWeekly-Blueprint/actions/workflows/deploy.yml/badge.svg)](https://github.com/miladtsx/FitWeekly-Blueprint/actions/workflows/deploy.yml)
 
 **Setup:**
 1. Go to **GitHub Settings → Secrets and variables → Actions**
@@ -194,7 +212,7 @@ POST https://<your-worker>.<your-subdomain>.workers.dev
 
 ```bash
 # Clone the repository
-git clone https://github.com/codekilid/fitness-bot.git
+git clone https://github.com/miladtsx/FitWeekly-Blueprint.git
 cd fitness-bot
 
 # Install dependencies
@@ -252,6 +270,7 @@ The bot uses `@cf/qwen/qwen3-30b-a3b-fp8` (enabled by default with Workers AI)
 
 | Area | Description |
 |------|-------------|
+| **Observability** | Extend `src/utils/logger/` with Datadog, or custom backends |
 | **More Languages** | Add support for Japanese, Korean, Portuguese, Russian, Hindi, etc. |
 | **Dietary Restrictions** | Vegetarian, vegan, halal, kosher, allergy support |
 | **Meal Macros** | Include calorie/macro details in output |
@@ -259,7 +278,6 @@ The bot uses `@cf/qwen/qwen3-30b-a3b-fp8` (enabled by default with Workers AI)
 | **Multi-turn Chat** | Conversational interface for follow-up questions |
 | **Progress Tracking** | Store and analyze user progress over time |
 | **Web Interface** | Add a web UI for easier access |
-| **Mobile App** | React Native or Flutter companion app |
 
 #### How to Contribute
 

@@ -26,8 +26,9 @@ binding = "AI"
 
 # Bind an Analytics Engine dataset. Use Analytics Engine to write analytics within your Pages Function.
 # Docs: https://developers.cloudflare.com/workers/wrangler/configuration/#analytics-engine-datasets
-# [[analytics_engine_datasets]]
-# binding = "MY_DATASET"
+[[analytics_engine_datasets]]
+binding = "ANALYTICS"
+database_name = "fitness-bot-metrics"
 
 # Bind a headless browser instance running on Cloudflare's global network.
 # Docs: https://developers.cloudflare.com/workers/wrangler/configuration/#browser-rendering
@@ -113,3 +114,10 @@ enabled = true
 
 [observability.logs]
 enabled = true
+
+# --- Grafana Loki Logger Configuration ---
+# To enable Grafana logging, uncomment and configure:
+# [vars]
+# GRAFANA_ENDPOINT = "https://logs-prod-us-central1.grafana.net/loki/api/v1/push"
+# GRAFANA_API_KEY = "<your-api-key>"
+# LOG_LEVEL = "info"  # debug, info, warn, error

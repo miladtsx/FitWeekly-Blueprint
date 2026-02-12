@@ -16,6 +16,13 @@ import {
   withRequestId,
   generateRequestId,
 } from "./utils/logger";
+import {
+  createMetricsFromEnv,
+  createMetricsTracker,
+} from "./utils/metrics";
+
+// Bail out before Cloudflare's ~60s request timeout to avoid client socket hang ups.
+const INFERENCE_TIMEOUT_MS = 55_000;
 
 export default {
   async fetch(
@@ -25,20 +32,27 @@ export default {
   ): Promise<Response> {
     void _ctx;
 
-    // Initialize logger with request ID
+    // Initialize observability
     const requestId = generateRequestId();
     const baseLogger = createLoggerFromEnv(
       env as unknown as Record<string, string | undefined>,
     );
     const log = withRequestId(requestId, baseLogger);
+    const baseMetrics = createMetricsFromEnv(
+      env as unknown as Record<string, unknown>,
+      env.ANALYTICS,
+    );
+    const tracker = createMetricsTracker(baseMetrics, env as unknown as Record<string, unknown>);
 
-    // Bail out before Cloudflare's ~60s request timeout to avoid client socket hang ups.
-    const INFERENCE_TIMEOUT_MS = 55_000;
+    const url = new URL(request.url);
 
     log.info("Request received", {
       method: request.method,
-      url: request.url,
+      url: url.pathname,
     });
+
+    // Track request method
+    tracker.trackRequest(request.method);
 
     if (request.method === "OPTIONS") {
       log.info("OPTIONS request handled");
@@ -46,6 +60,7 @@ export default {
     }
     if (request.method !== "POST") {
       log.warn("Invalid HTTP method", { method: request.method });
+      tracker.trackRequestStatus("error", "invalid_method");
       return new Response("Method Not Allowed", {
         status: 405,
         headers: UTILS.corsHeaders,
@@ -61,6 +76,7 @@ export default {
       log.warn("Invalid JSON in request body", {
         raw_body_preview: rawBody?.slice(0, 500) ?? "(empty)",
       });
+      tracker.trackRequestStatus("rejected", "invalid_json");
       return UTILS.json(
         {
           status: "rejected",
@@ -76,6 +92,7 @@ export default {
       log.warn("Input validation failed", {
         error: UTILS.formatParseIssue(parsed.error),
       });
+      tracker.trackRequestStatus("rejected", "validation_failed");
       return UTILS.json(
         { status: "rejected", reason: UTILS.formatParseIssue(parsed.error) },
         400,
@@ -85,8 +102,15 @@ export default {
     const input = parsed.data;
     const language = input.language || "fa";
 
+    // Track user metrics
+    tracker.trackLanguage(language);
+    tracker.trackGoal(input.goal);
+    tracker.trackActivityLevel(input.activity);
+    tracker.trackDemographics(input.sex, input.age);
+
     if (UTILS.hasMedicalCondition(input.medicalCondition)) {
       log.info("Request rejected due to medical condition");
+      tracker.trackRequestStatus("rejected", "medical_condition");
       return UTILS.json(
         {
           status: "rejected",
@@ -130,6 +154,8 @@ export default {
           reason: parsedGuidance.reason,
           duration_ms: guidanceDuration,
         });
+        tracker.trackRequestStatus("error", "guidance_failed");
+        tracker.trackDuration("guidance", guidanceDuration);
         return UTILS.json(
           {
             status: "error",
@@ -143,6 +169,8 @@ export default {
         duration_ms: guidanceDuration,
         has_guidance: !!parsedGuidance.guidance,
       });
+
+      tracker.trackDuration("guidance", guidanceDuration);
 
       // 2) Build the full weekly plan, conditioning on guidance if available.
       const planInputPayload = {
@@ -171,6 +199,16 @@ export default {
 
       const planDuration = Date.now() - planStartTime;
 
+      // Track token usage
+      if (isChatCompletion(planResult) && planResult.usage) {
+        const usage = planResult.usage as { prompt_tokens?: number; completion_tokens?: number };
+        tracker.trackTokens(
+          "plan",
+          usage.prompt_tokens ?? 0,
+          usage.completion_tokens ?? 0,
+        );
+      }
+
       // Guard: if the model stopped because of token limit, surface a clearer error.
       if (
         isChatCompletion(planResult) &&
@@ -183,6 +221,8 @@ export default {
           total_tokens: planResult.usage?.total_tokens,
           max_tokens: PLAN_TOKENS,
         });
+        tracker.trackRequestStatus("error", "token_limit");
+        tracker.trackDuration("plan", planDuration);
         return UTILS.json(
           {
             status: "error",
@@ -203,6 +243,8 @@ export default {
           issues: parsedPlans.error.issues.length,
           formatted: UTILS.formatParseIssue(parsedPlans.error),
         });
+        tracker.trackRequestStatus("error", "plan_validation_failed");
+        tracker.trackDuration("plan", planDuration);
         const fallback: OUTPUT.OutputModel = {
           status: "rejected",
           reason: `Plan generation failed: ${UTILS.formatParseIssue(parsedPlans.error)}`,
@@ -221,6 +263,7 @@ export default {
         log.error("Final output validation failed", {
           issues: parsedFinal.error.issues.length,
         });
+        tracker.trackRequestStatus("error", "output_validation_failed");
         const fallback: OUTPUT.OutputModel = {
           status: "rejected",
           reason: `Final output missing required fields: ${UTILS.formatParseIssue(parsedFinal.error)}`,
@@ -237,10 +280,16 @@ export default {
         plan_duration_ms: planDuration,
       });
 
+      // Track success metrics
+      tracker.trackRequestStatus("success");
+      tracker.trackDuration("total", totalDuration);
+      tracker.trackDuration("plan", planDuration);
+
       return UTILS.json(parsedFinal.data as OUTPUT.OutputModel, 200);
     } catch (error) {
       if (error instanceof Error && error.message === "timeout") {
         log.error("Model request timed out");
+        tracker.trackRequestStatus("error", "timeout");
         return UTILS.json(
           {
             status: "error",
@@ -253,6 +302,7 @@ export default {
       log.error("Model request failed", {
         error: error instanceof Error ? error.message : String(error),
       });
+      tracker.trackRequestStatus("error", "unknown");
       return UTILS.json(
         {
           status: "error",

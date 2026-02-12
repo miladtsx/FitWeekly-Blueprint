@@ -33,7 +33,7 @@ export function createGrafanaLogger(
   }
 
   const defaultLabels = {
-    app: 'kayar-bot',
+    app: 'fitness-bot',
     ...config.labels,
   };
 
