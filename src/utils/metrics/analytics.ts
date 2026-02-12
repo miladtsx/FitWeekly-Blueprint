@@ -44,6 +44,9 @@ export function createAnalyticsMetrics(
   config: AnalyticsConfig,
 ): Metrics {
   const dataset = config.datasetName ?? 'metrics';
+  const analyticsBinding = hasAnalyticsEngineBinding(config.binding)
+    ? config.binding
+    : undefined;
 
   return {
     counter(name: string, value = 1, tags?: Record<string, string>) {
@@ -65,14 +68,14 @@ export function createAnalyticsMetrics(
     type: string,
     tags: Record<string, string>,
   ) {
-    if (!config.binding) {
+    if (!analyticsBinding) {
       // Analytics Engine not bound, silently skip
       return;
     }
 
     const localHour = Math.floor(Date.now() / 1000 / 60 / 60) % 24;
 
-    config.binding.write({
+    analyticsBinding.write({
       localHour,
       metric_name: name,
       metric_type: type,
@@ -83,6 +86,12 @@ export function createAnalyticsMetrics(
       // Silently fail - don't impact request handling
     });
   }
+}
+
+function hasAnalyticsEngineBinding(
+  binding?: AnalyticsEngineBinding,
+): binding is AnalyticsEngineBinding {
+  return Boolean(binding && typeof binding.write === 'function');
 }
 
 /**
