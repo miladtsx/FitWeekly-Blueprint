@@ -11,6 +11,11 @@ import {
 } from "./utils/normalization";
 import { runWithTimeout } from "./utils/async";
 import { generateGuidanceWithRetry } from "./utils/guidance";
+import {
+  createLoggerFromEnv,
+  withRequestId,
+  generateRequestId,
+} from "./utils/logger";
 
 export default {
   async fetch(
@@ -20,13 +25,27 @@ export default {
   ): Promise<Response> {
     void _ctx;
 
+    // Initialize logger with request ID
+    const requestId = generateRequestId();
+    const baseLogger = createLoggerFromEnv(
+      env as unknown as Record<string, string | undefined>,
+    );
+    const log = withRequestId(requestId, baseLogger);
+
     // Bail out before Cloudflare's ~60s request timeout to avoid client socket hang ups.
     const INFERENCE_TIMEOUT_MS = 55_000;
 
+    log.info("Request received", {
+      method: request.method,
+      url: request.url,
+    });
+
     if (request.method === "OPTIONS") {
+      log.info("OPTIONS request handled");
       return new Response("OK", { status: 200, headers: UTILS.corsHeaders });
     }
     if (request.method !== "POST") {
+      log.warn("Invalid HTTP method", { method: request.method });
       return new Response("Method Not Allowed", {
         status: 405,
         headers: UTILS.corsHeaders,
@@ -34,9 +53,14 @@ export default {
     }
 
     let body: unknown;
+    let rawBody: string | undefined;
     try {
-      body = await request.json();
+      rawBody = await request.text();
+      body = JSON.parse(rawBody);
     } catch {
+      log.warn("Invalid JSON in request body", {
+        raw_body_preview: rawBody?.slice(0, 500) ?? "(empty)",
+      });
       return UTILS.json(
         {
           status: "rejected",
@@ -49,6 +73,9 @@ export default {
 
     const parsed = planInputSchema.safeParse(body);
     if (!parsed.success) {
+      log.warn("Input validation failed", {
+        error: UTILS.formatParseIssue(parsed.error),
+      });
       return UTILS.json(
         { status: "rejected", reason: UTILS.formatParseIssue(parsed.error) },
         400,
@@ -59,12 +86,14 @@ export default {
     const language = input.language || "fa";
 
     if (UTILS.hasMedicalCondition(input.medicalCondition)) {
+      log.info("Request rejected due to medical condition");
       return UTILS.json(
         {
           status: "rejected",
-          reason: language === "fa" 
-            ? "لطفا با یک انسان متخصص مشورت کنید." 
-            : "Please consult with a qualified healthcare professional.",
+          reason:
+            language === "fa"
+              ? "لطفا با یک انسان متخصص مشورت کنید."
+              : "Please consult with a qualified healthcare professional.",
         },
         200,
       );
@@ -77,6 +106,8 @@ export default {
     const PLAN_TOKENS = 10000;
 
     try {
+      const guidanceStartTime = Date.now();
+
       // 1) Get critical guidance (concise constraints) with retry on bad JSON.
       const parsedGuidance = await generateGuidanceWithRetry(
         payload,
@@ -88,10 +119,17 @@ export default {
           guidanceJsonSchema: OUTPUT.guidanceJsonSchema,
           guidanceSchema: OUTPUT.guidanceSchema,
           formatParseIssue: UTILS.formatParseIssue,
+          logger: log,
         },
       );
 
+      const guidanceDuration = Date.now() - guidanceStartTime;
+
       if (parsedGuidance.status === "error") {
+        log.error("Guidance generation failed", {
+          reason: parsedGuidance.reason,
+          duration_ms: guidanceDuration,
+        });
         return UTILS.json(
           {
             status: "error",
@@ -101,11 +139,18 @@ export default {
         );
       }
 
+      log.info("Guidance generated", {
+        duration_ms: guidanceDuration,
+        has_guidance: !!parsedGuidance.guidance,
+      });
+
       // 2) Build the full weekly plan, conditioning on guidance if available.
       const planInputPayload = {
         ...payload,
         guidance: parsedGuidance.guidance ?? undefined,
       };
+
+      const planStartTime = Date.now();
 
       const planResult = await runWithTimeout(
         () =>
@@ -124,12 +169,15 @@ export default {
         INFERENCE_TIMEOUT_MS,
       );
 
+      const planDuration = Date.now() - planStartTime;
+
       // Guard: if the model stopped because of token limit, surface a clearer error.
       if (
         isChatCompletion(planResult) &&
         planResult.choices?.[0]?.finish_reason === "length"
       ) {
-        console.error("Plan generation truncated by token limit", {
+        log.error("Plan generation truncated by token limit", {
+          duration_ms: planDuration,
           finish_reason: planResult.choices?.[0]?.finish_reason,
           completion_tokens: planResult.usage?.completion_tokens,
           total_tokens: planResult.usage?.total_tokens,
@@ -150,12 +198,10 @@ export default {
       const parsedPlans = OUTPUT.plansSchema.safeParse(normalizedPlanPayload);
 
       if (!parsedPlans.success) {
-        console.error("Plan generation validation failed", {
-          issues: parsedPlans.error.issues,
+        log.error("Plan validation failed", {
+          duration_ms: planDuration,
+          issues: parsedPlans.error.issues.length,
           formatted: UTILS.formatParseIssue(parsedPlans.error),
-          rawPlanResult: planResult,
-          extractedPayload: planPayload,
-          normalizedPayload: normalizedPlanPayload,
         });
         const fallback: OUTPUT.OutputModel = {
           status: "rejected",
@@ -172,7 +218,9 @@ export default {
 
       const parsedFinal = OUTPUT.outputModelSchema.safeParse(finalOutput);
       if (!parsedFinal.success) {
-        console.error("Final output validation failed", parsedFinal.error);
+        log.error("Final output validation failed", {
+          issues: parsedFinal.error.issues.length,
+        });
         const fallback: OUTPUT.OutputModel = {
           status: "rejected",
           reason: `Final output missing required fields: ${UTILS.formatParseIssue(parsedFinal.error)}`,
@@ -180,9 +228,19 @@ export default {
         return UTILS.json(fallback, 200);
       }
 
+      const totalDuration =
+        Date.now() - guidanceStartTime - planStartTime + planDuration;
+
+      log.info("Request completed successfully", {
+        duration_ms: totalDuration,
+        guidance_duration_ms: guidanceDuration,
+        plan_duration_ms: planDuration,
+      });
+
       return UTILS.json(parsedFinal.data as OUTPUT.OutputModel, 200);
     } catch (error) {
       if (error instanceof Error && error.message === "timeout") {
+        log.error("Model request timed out");
         return UTILS.json(
           {
             status: "error",
@@ -192,7 +250,9 @@ export default {
         );
       }
 
-      console.error("Model request failed", error);
+      log.error("Model request failed", {
+        error: error instanceof Error ? error.message : String(error),
+      });
       return UTILS.json(
         {
           status: "error",

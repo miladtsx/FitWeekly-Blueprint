@@ -5,6 +5,7 @@
 import type { Env } from "../../worker-configuration";
 import type { GuidanceResult } from "../schemas/output";
 import type { ZodType } from "zod";
+import type { Logger } from "./logger/types";
 import { isTruncatedByTokens } from "./validation";
 import { extractModelPayload } from "./normalization";
 import { runWithTimeout } from "./async";
@@ -14,6 +15,7 @@ interface GuidanceDependencies {
   guidanceJsonSchema: unknown;
   guidanceSchema: ZodType;
   formatParseIssue: (error: unknown) => string;
+  logger?: Logger;
 }
 
 /**
