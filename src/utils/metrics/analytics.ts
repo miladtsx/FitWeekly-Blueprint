@@ -3,7 +3,7 @@
  *
  * Configure in wrangler.toml:
  * [[analytics_engine_datasets]]
- * binding = "ANALYTICS"
+ * binding = "ANALYTICS_ENGINE"
  * database_name = "analytics"
  *
  * Add to wrangler.toml vars:

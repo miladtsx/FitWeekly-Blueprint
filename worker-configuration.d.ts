@@ -3,7 +3,7 @@
 
 export interface Env {
 	AI: Ai;
-	ANALYTICS?: AnalyticsEngine;
+	ANALYTICS_ENGINE?: AnalyticsEngine;
 }
 
 export interface AnalyticsEngine {

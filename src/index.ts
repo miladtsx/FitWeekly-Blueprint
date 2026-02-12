@@ -40,7 +40,7 @@ export default {
     const log = withRequestId(requestId, baseLogger);
     const baseMetrics = createMetricsFromEnv(
       env as unknown as Record<string, unknown>,
-      env.ANALYTICS,
+      env.ANALYTICS_ENGINE,
     );
     const tracker = createMetricsTracker(baseMetrics, env as unknown as Record<string, unknown>);
 

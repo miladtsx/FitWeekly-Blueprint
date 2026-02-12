@@ -6,7 +6,7 @@
  *
  * Backend selection (via env vars):
  *   - Default: no-op (disabled)
- *   - ANALYTICS_ENABLED + ANALYTICS binding: Analytics Engine
+ *   - ANALYTICS_ENABLED + ANALYTICS_ENGINE binding: Analytics Engine
  */
 
 export type { Metrics, MetricsConfig, MetricsBackend } from './types';
