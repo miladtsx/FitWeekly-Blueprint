@@ -8,6 +8,7 @@ const basePayload = {
   sex: "male",
   goal: "build_muscle",
   activity: "medium",
+  language: "fa",
 };
 
 describe("planInputSchema", () => {

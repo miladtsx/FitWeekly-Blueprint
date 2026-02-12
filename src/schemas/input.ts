@@ -10,6 +10,7 @@ const goalValues = [
 ] as const;
 const activityValues = ["low", "medium", "high"] as const;
 const practicePlaceValues = ["home", "gym", "both"] as const;
+const languageValues = ["fa", "en", "ar", "tr", "zh", "es", "fr", "de"] as const;
 
 const rawPlanInputSchema = z.object({
   heightCm: z.coerce.number().min(120).max(230),
@@ -20,6 +21,7 @@ const rawPlanInputSchema = z.object({
   activity: z.enum(activityValues),
   medicalCondition: z.coerce.string().trim().optional(),
   practicePlace: z.enum(practicePlaceValues).optional(),
+  language: z.enum(languageValues).default("fa"),
 });
 
 export const planInputSchema = rawPlanInputSchema.transform(
@@ -32,6 +34,7 @@ export const planInputSchema = rawPlanInputSchema.transform(
     activity: value.activity,
     medicalCondition: value.medicalCondition || undefined,
     practicePlace: value.practicePlace || undefined,
+    language: value.language || undefined,
   }),
 );
 

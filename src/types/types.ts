@@ -8,6 +8,7 @@ export type Goal =
   | "maintain_weight";
 export type Activity = "low" | "medium" | "high";
 export type PracticePlace = "home" | "gym" | "both";
+export type Language = "fa" | "en" | "ar" | "tr" | "zh" | "es" | "fr" | "de";
 
 export interface PlanRequest {
   heightCm: number;
@@ -18,6 +19,7 @@ export interface PlanRequest {
   activity: Activity;
   medicalCondition?: string;
   practicePlace?: PracticePlace;
+  language?: Language;
 }
 
 export interface DeterministicNumbers {

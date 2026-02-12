@@ -56,12 +56,15 @@ export default {
     }
 
     const input = parsed.data;
+    const language = input.language || "fa";
 
     if (UTILS.hasMedicalCondition(input.medicalCondition)) {
       return UTILS.json(
         {
           status: "rejected",
-          reason: "لطفا با یک انسان متخصص مشورت کنید.",
+          reason: language === "fa" 
+            ? "لطفا با یک انسان متخصص مشورت کنید." 
+            : "Please consult with a qualified healthcare professional.",
         },
         200,
       );
@@ -81,7 +84,7 @@ export default {
         GUIDANCE_TOKENS,
         INFERENCE_TIMEOUT_MS,
         {
-          guidancePrompt: PROMPT.GUIDANCE_PROMPT,
+          guidancePrompt: PROMPT.getGuidancePrompt(language),
           guidanceJsonSchema: OUTPUT.guidanceJsonSchema,
           guidanceSchema: OUTPUT.guidanceSchema,
           formatParseIssue: UTILS.formatParseIssue,
@@ -108,7 +111,7 @@ export default {
         () =>
           env.AI.run("@cf/qwen/qwen3-30b-a3b-fp8", {
             messages: [
-              { role: "system", content: PROMPT.PLAN_PROMPT },
+              { role: "system", content: PROMPT.getPlanPrompt(language) },
               { role: "user", content: JSON.stringify(planInputPayload) },
             ],
             response_format: {
